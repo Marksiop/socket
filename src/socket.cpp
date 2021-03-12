@@ -56,11 +56,13 @@ void Socket::init(int port )
         r.content = content;
         std::string k = format(r);
         const char *buff = k.c_str(); 
-
-        int new_socket = accept(sock_des, (struct sockaddr *)&this->addr, (socklen_t *)&addrlen);
-        if (new_socket < 0)
-            throw "new sock error"; 
-        int s = send(new_socket, buff, k.length(), 0);
+        while(true)
+        {
+            int new_socket = accept(sock_des, (struct sockaddr *)&this->addr, (socklen_t *)&addrlen);
+            if (new_socket < 0)
+                throw "new sock error"; 
+            int s = send(new_socket, buff, k.length(), 0);
+        }
     } catch(const char *msg)
     {
         std::cout << msg;
