@@ -23,4 +23,4 @@ target_include_directories(${PROJECT_NAME} PUBLIC "${PROJECT_BINARY_DIR}" src)
 target_link_libraries(${PROJECT_NAME} PUBLIC sockets)
 
 install(TARGETS ${PROJECT_NAME} DESTINATION bin)
-install(FILES "${PROJECT_SOURCE_DIR}/config.h" DESTINATION include)
+install(FILES "${PROJECT_BINARY_DIR}/config.h" DESTINATION include)
