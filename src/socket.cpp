@@ -1,5 +1,6 @@
 #include "socket.h"
 #include <iostream>
+#include "utils.h"
 
 std::string date_time() 
 {
@@ -8,23 +9,23 @@ std::string date_time()
     return t;
 }
 
-const std::string format(Socket::Res r) 
+const std::string format(const Socket::Res& res, const Socket::Req& req) 
 {
-    std::string main = "HTTP/1.1 "; 
-    main.append(std::to_string(r.status_code));
+    std::string main = "HTTP" + req.path + " 1.1 "; 
+    main.append(std::to_string(res.status_code));
     main.append(" OK\n");
     main.append("Date: " + date_time() + " GMT\n");
-    if (r.content_type == Socket::Content_Type::TEXT_HTML)
+    if (res.content_type == Socket::Content_Type::TEXT_HTML)
     {
         main.append("Content-Type: " + std::string{ "text/html\n" });
     } 
-    main.append("Content-Length: " +  std::to_string(r.content.length()) + "\n"); 
+    main.append("Content-Length: " +  std::to_string(res.content.length()) + "\n"); 
     main.append("\n");
-    main.append(r.content);
+    main.append(res.content);
     return main;
 }
 
-void Socket::init(int port ) 
+void Socket::init(int port) 
 {
     try 
     {
@@ -35,7 +36,7 @@ void Socket::init(int port )
         int sockopt = setsockopt(sock_des, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)); 
         if (sockopt)
             throw "socket opt error";
-        this->addr.sin_port = htons( 3000 ); 
+        this->addr.sin_port = htons( port ); 
         this->addr.sin_addr.s_addr = INADDR_ANY; 
         this->addr.sin_family = AF_INET;
         int addrlen = sizeof(this->addr);
@@ -44,24 +45,34 @@ void Socket::init(int port )
             throw "binding failed";
         int l = listen(sock_des, 4); 
         if (l < 0)
-            throw "listening failed";
-        Socket::Res r;
-        r.status_code = 200;
-        r.content_type = Socket::Content_Type::TEXT_HTML;
-        std::vector<std::pair<std::string , std::string>> header; 
-        std::pair<std::string, std::string> kk("Authorization", "None");
-        header.push_back(kk); 
-        r.headers = header;
-        std::string content = "Hello World!"; 
-        r.content = content;
-        std::string k = format(r);
-        const char *buff = k.c_str(); 
+            throw "listening failed"; 
         while(true)
         {
             int new_socket = accept(sock_des, (struct sockaddr *)&this->addr, (socklen_t *)&addrlen);
             if (new_socket < 0)
                 throw "new sock error"; 
-            int s = send(new_socket, buff, k.length(), 0);
+            int r = read(new_socket, this->buffer, 1024); 
+            Socket::Req rr = req_ref(this->buffer);
+            if (this->APP.size() <= 0)
+                throw "give 1 or more path";
+            for (int i = 0; i < this->APP.size(); i++)
+            {
+                if (rr.path == (this->APP[i]).first)
+                {
+                    Socket::Req req; 
+                    Socket::Res res; 
+                    (this->APP[i]).second(req, res); 
+                    if (req.method == rr.method)
+                    {
+                        std::string temp = format(res, req);
+                        const char* ss = temp.c_str(); 
+                        int s = send(new_socket, ss, temp.length(), 0);
+                        if (s < 0)
+                            throw "error occured while sending";
+                    }
+                } 
+            }
+            
         }
     } catch(const char *msg)
     {
@@ -69,3 +80,10 @@ void Socket::init(int port )
     }
 }
 
+
+
+
+void Socket::app(const App* ap)
+{
+    this->APP = *ap;
+}
