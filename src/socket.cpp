@@ -77,6 +77,7 @@ void Socket::init(int port)
     } catch(const char *msg)
     {
         std::cout << msg;
+        return;
     }
 }
 
