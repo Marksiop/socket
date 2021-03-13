@@ -11,6 +11,13 @@ configure_file(config.h.in config.h)
 
 add_subdirectory(src)
 
+find_package(Git)
+
+if (GIT_FOUND AND EXISTS "${PROJECT_SOURCE_DIR}/.git")
+    option(SUB_MODULE "sub module" ON)
+    #idk why i did this there are no sub-modules but who cares 
+endif()
+
 target_include_directories(${PROJECT_NAME} PUBLIC "${PROJECT_BINARY_DIR}" src)
 
 target_link_libraries(${PROJECT_NAME} PUBLIC sockets)
